@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import pickle
 from keras.models import load_model
+from sklearn.preprocessing import MinMaxScaler
 
 import uvicorn
 from fastapi import FastAPI
@@ -11,6 +12,9 @@ from SalesInfos import SalesInfo
 app = FastAPI()
 pred_model = load_model('my_keras_model.h5')
 
+# Loading the scaler
+with open('scaler.pkl', 'rb') as scaler_file:
+    scaler = pickle.load(scaler_file)
 
 # Index route, opens automatically on http://127.0.0.1:8000
 @app.get('/')
@@ -35,6 +39,12 @@ def predict_sales(data: SalesInfo):
     future_sales_predictions = pred_model.predict(temp2)[0, 0]
     future_sales_predictions = float(future_sales_predictions)
     print(future_sales_predictions)
+    temp4 = np.zeros((1, 11))
+    temp4[0, 0] = future_sales_predictions
+    # Applying inverse transformation using the loaded scaler
+    predicted_value = np.array(temp4).reshape(1, -1)
+    future_sales_predictions = scaler.inverse_transform(predicted_value)
+    future_sales_predictions = future_sales_predictions[0, 0]
     return {'future_sales_predictions': future_sales_predictions}
 
 
@@ -47,6 +57,7 @@ if __name__ == '__main__':
 
 # Command to run this python script -->
 # uvicorn app:app --reload
+
 
 # Testcase -->
 # {
